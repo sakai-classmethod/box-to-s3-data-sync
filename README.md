@@ -132,7 +132,7 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    ```json
    {
      "hoursAgo": 24,
-     "filePrefix": "sample",
+     "filePrefix": "",
      "KnowledgeBaseId": "XXXXXXXX",
      "DataSourceId": "XXXXXXXX"
    }
