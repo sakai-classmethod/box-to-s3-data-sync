@@ -11,6 +11,10 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
 2. データ同期処理を実行するStep Functions
 3. 必要なIAMロールとポリシー
 
+## アーキテクチャ
+
+![Box to S3 データ同期のアーキテクチャ図](./images/aws.png)
+
 ## セットアップと実行
 
 1. リポジトリのクローンと依存関係のインストール
@@ -24,9 +28,10 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    - [Box JWT認証の設定ガイド](https://ja.developer.box.com/guides/authentication/jwt/jwt-setup/)にしたがって、Boxアプリケーションを作成します
    - サーバー認証（JWT）を選択し、設定JSONファイルをダウンロードします
    - ダウンロードしたJSONファイルを`box_config.json`として保存します
-> [!IMPORTANT]
->  開発者コンソールの「構成」タブで、アプリケーションアクセスを「App + Enterpriseアクセス」に設定してください。
->  作成したBoxアプリケーションを同期対象のBoxフォルダーにコラボレーターとして招待し、ビューアー権限を付与してください。[コラボレーターの招待方法](https://support.box.com/hc/ja/articles/360043696854-%E3%82%B3%E3%83%A9%E3%83%9C%E3%83%AC%E3%83%BC%E3%82%BF%E3%81%AE%E6%8B%9B%E5%BE%85)や[権限レベルの詳細](https://support.box.com/hc/ja/articles/360044196413-%E3%82%B3%E3%83%A9%E3%83%9C%E3%83%AC%E3%83%BC%E3%82%BF%E3%81%AE%E6%A8%A9%E9%99%90%E3%83%AC%E3%83%99%E3%83%AB%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)については、Boxのドキュメントを参照してください。
+   
+  > [!IMPORTANT]
+  > 開発者コンソールの「構成」タブで、アプリケーションアクセスを「App + Enterpriseアクセス」に設定してください。
+  > 作成したBoxアプリケーションを同期対象のBoxフォルダーにコラボレーターとして招待し、ビューアー権限を付与してください。[コラボレーターの招待方法](https://support.box.com/hc/ja/articles/360043696854-%E3%82%B3%E3%83%A9%E3%83%9C%E3%83%AC%E3%83%BC%E3%82%BF%E3%81%AE%E6%8B%9B%E5%BE%85)や[権限レベルの詳細](https://support.box.com/hc/ja/articles/360044196413-%E3%82%B3%E3%83%A9%E3%83%9C%E3%83%AC%E3%83%BC%E3%82%BF%E3%81%AE%E6%A8%A9%E9%99%90%E3%83%AC%E3%83%99%E3%83%AB%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)については、Boxのドキュメントを参照してください。
 
 3. Box JWT設定をAWS Systems Managerパラメータストアにアップロード
    ```bash
@@ -86,17 +91,7 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    - `env`: AWSアカウントとリージョンの設定
 
 5. デプロイ
-   環境を指定してデプロイします。環境を指定しない場合はデフォルト設定（空の文字列）が使用されます：
-   
-   ```bash
-   # デフォルト環境へデプロイ
-   npm run cdk:deploy
-   
-   # 開発環境へデプロイ
-   npm run cdk:deploy:dev
-   ```
-   
-   または、package.jsonに定義されたスクリプトを使用します：
+   環境を指定してデプロイします。
    
    ```bash
    # デフォルト環境へデプロイ
@@ -107,7 +102,13 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    ```
 
 6. 実行方法
-   
+
+   ### 実行パラメーター
+   - **hoursAgo**: 何時間前までの更新ファイルを対象とするか（省略時は全ファイル）
+   - **filePrefix**: ファイル名のプレフィックス（文字列または配列で指定可能）
+   - **KnowledgeBaseId**: Amazon BedrockナレッジベースのID（**必須**）
+   - **DataSourceId**: ナレッジベースのデータソースID（**必須**）
+
    ### AWS マネジメントコンソールから手動実行
    - AWS Step Functionsコンソールにアクセス
    - `BoxToS3SyncStateMachine` を選択
@@ -124,65 +125,22 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    
    ### EventBridgeによる自動実行
    CDKデプロイ時に、毎日日本時間AM1:00に実行されるEventBridgeルールが自動的に作成されます。
-   
-   - ルール名: `daily-box-to-s3-sync`
+
    - 実行時間: 毎日日本時間AM1:00（UTC 15:00）
    - 入力パラメーター:
-     ```json
-     {
-       "hoursAgo": 24,
-       "filePrefix": "",
-       "KnowledgeBaseId": "設定済みKnowledgeBaseId",
-       "DataSourceId": "設定済みDataSourceId"
-     }
-     ```
+   
+   ```json
+   {
+     "hoursAgo": 24,
+     "filePrefix": "sample",
+     "KnowledgeBaseId": "XXXXXXXX",
+     "DataSourceId": "XXXXXXXX"
+   }
+   ```
    
    EventBridgeルールのスケジュールや入力パラメーターを変更する場合は、CDKコードを修正するかマネジメントコーソールから直接変更してください。
-
-## アーキテクチャ
-
-![Box to S3 データ同期のアーキテクチャ図](./images/aws.png)
-
-## 動作の仕組み
-
-このソリューションは以下のワークフローに従います：
-
-1. Step Functionsのステートマシンが全体のプロセスを調整
-2. Lambda関数がSSMパラメータストアに保存されたJWT認証を使用してBox APIに接続
-3. 指定された条件（時間範囲、ファイル名プレフィックス）に基づいてファイルをフィルタリング
-4. 条件に一致するファイルをBoxからダウンロードしS3にアップロード
-5. データをAmazon Bedrockナレッジベースと同期
 
 ## Step Functionsのワークフロー
 
 1. **ExecuteBoxSync**: Box to S3同期処理（Lambda関数を呼び出し）
 2. **StartIngestion**: Bedrockナレッジベースのデータソース同期開始
-
-## 実行パラメーター
-
-以下のパラメーターでStep Functionsを実行できます：
-
-```json
-{
-  "hoursAgo": 24,
-  "filePrefix": "sample",
-  "KnowledgeBaseId": "XXXXXXXX",
-  "DataSourceId": "XXXXXXXX"
-}
-```
-
-`filePrefix`を配列で指定する場合：
-
-```json
-{
-  "hoursAgo": 24,
-  "filePrefix": ["sample", "test"],
-  "KnowledgeBaseId": "XXXXXXXX",
-  "DataSourceId": "XXXXXXXX"
-}
-```
-
-- **hoursAgo**: 何時間前までの更新ファイルを対象とするか（省略時は全ファイル）
-- **filePrefix**: ファイル名のプレフィックス（文字列または配列で指定可能）
-- **KnowledgeBaseId**: Amazon BedrockナレッジベースのID（**必須**、Bedrockナレッジベース連携を行う場合）
-- **DataSourceId**: ナレッジベースのデータソースID（**必須**、Bedrockナレッジベース連携を行う場合）
