@@ -18,12 +18,12 @@ const env = { account: envVals['env']['account'], region: envVals['env']['region
 new BoxToS3DataSyncStack(app, `BoxToS3DataSyncStack${envKey}`, {
 	env,
 	bucketName: envVals.bucketName,
-	ssmParamName: envVals.ssmParamName,
-	s3Prefix: envVals.s3Prefix,
+	ssmParameterKey: envVals.ssmParameterKey,
+	destinationS3Prefix: envVals.destinationS3Prefix,
 	boxFolderId: envVals.boxFolderId,
 	maxFileSizeMB: envVals.maxFileSizeMB,
 	knowledgeBaseId: envVals.knowledgeBaseId,
 	dataSourceId: envVals.dataSourceId,
-	syncHoursAgo: envVals.syncHoursAgo,
+	syncIntervalHours: envVals.syncIntervalHours,
 	syncFilePrefixes: envVals.syncFilePrefixes,
 });

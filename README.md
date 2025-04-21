@@ -52,13 +52,13 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
      "context": {
        "": {
          "bucketName": "your-data-source-bucket-name",
-         "ssmParamName": "/box/jwt",
-         "s3Prefix": "docs",
+         "ssmParameterKey": "/box/jwt",
+         "destinationS3Prefix": "docs",
          "boxFolderId": "your-box-folder-id",
          "maxFileSizeMB": 50,
          "knowledgeBaseId": "your-knowledge-base-id",
          "dataSourceId": "your-data-source-id",
-         "syncHoursAgo": 24,
+         "syncIntervalHours": 24,
          "syncFilePrefixes": ["sample", "sample2"],
          "env": {
            "account": "123456789012",
@@ -67,13 +67,13 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
        },
        "dev": {
          "bucketName": "your-dev-bucket-name",
-         "ssmParamName": "/box/jwt",
-         "s3Prefix": "docs",
+         "ssmParameterKey": "/box/jwt",
+         "destinationS3Prefix": "docs",
          "boxFolderId": "your-box-folder-id",
          "maxFileSizeMB": 50,
          "knowledgeBaseId": "your-knowledge-base-id",
          "dataSourceId": "your-data-source-id",
-         "syncHoursAgo": 24,
+         "syncIntervalHours": 24,
          "syncFilePrefixes": ["sample", "sample2"],
          "env": {
            "account": "123456789012",
@@ -86,13 +86,13 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    
    各パラメーターの説明：
    - `bucketName`: 同期されたファイルを保存するS3バケット名（ナレッジベースのデータソース）
-   - `ssmParamName`: Box JWT設定が保存されているSSMパラメーター名（デフォルト値のままでもOK）
-   - `s3Prefix`: S3バケット内のフォルダプレフィックス
+   - `ssmParameterKey`: Box JWT設定が保存されているSSMパラメーター名（デフォルト値のままでもOK）
+   - `destinationS3Prefix`: S3バケット内のフォルダプレフィックス
    - `boxFolderId`: 同期するBoxのフォルダーID（[確認方法](https://ja.developer.box.com/platform/appendix/locating-values/#%E3%82%B3%E3%83%B3%E3%83%84id)）
    - `maxFileSizeMB`: ダウンロード可能な最大ファイルサイズ（MB単位）。初期値50MBは[Amazon Bedrockナレッジベースの前提条件](https://docs.aws.amazon.com/ja_jp/bedrock/latest/userguide/knowledge-base-ds.html)に合わせています
    - `knowledgeBaseId`: Amazon Bedrockナレッジベースの識別子
    - `dataSourceId`: ナレッジベース内のデータソース識別子
-   - `syncHoursAgo`: Box同期時の対象時間（時間単位）、デフォルトは24時間
+   - `syncIntervalHours`: Box同期時の対象時間（時間単位）、デフォルトは24時間
    - `syncFilePrefixes`: 同期対象のファイル名プレフィックス（配列で複数指定可能）
    - `env`: AWSアカウントとリージョンの設定
 

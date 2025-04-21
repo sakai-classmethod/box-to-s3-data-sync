@@ -22,11 +22,11 @@ export interface BoxToS3DataSyncStackProps extends cdk.StackProps {
 	/**
 	 * SSMパラメータ名
 	 */
-	ssmParamName: string;
+	ssmParameterKey: string;
 	/**
 	 * S3のプレフィックス
 	 */
-	s3Prefix: string;
+	destinationS3Prefix: string;
 	/**
 	 * Boxフォルダ ID
 	 */
@@ -46,7 +46,7 @@ export interface BoxToS3DataSyncStackProps extends cdk.StackProps {
 	/**
 	 * Box同期時の対象時間（時間単位）
 	 */
-	syncHoursAgo: number;
+	syncIntervalHours: number;
 	/**
 	 * 同期ファイルのプレフィックス（配列）
 	 */
@@ -93,9 +93,9 @@ export class BoxToS3DataSyncStack extends cdk.Stack {
 				],
 			},
 			environment: {
-				SSM_PARAM_NAME: props.ssmParamName,
+				SSM_PARAM_NAME: props.ssmParameterKey,
 				S3_BUCKET_NAME: dataBucket.bucketName,
-				S3_PREFIX: props.s3Prefix,
+				S3_PREFIX: props.destinationS3Prefix,
 				BOX_FOLDER_ID: props.boxFolderId,
 				MAX_FILE_SIZE_MB: props.maxFileSizeMB.toString(),
 			},
@@ -160,7 +160,7 @@ export class BoxToS3DataSyncStack extends cdk.Stack {
 		scheduledRule.addTarget(
 			new targets.SfnStateMachine(stateMachine, {
 				input: events.RuleTargetInput.fromObject({
-					hoursAgo: props.syncHoursAgo,
+					hoursAgo: props.syncIntervalHours,
 					filePrefixes: props.syncFilePrefixes,
 					KnowledgeBaseId: props.knowledgeBaseId,
 					DataSourceId: props.dataSourceId,
