@@ -110,7 +110,7 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
 6. 実行方法
 
    ### 実行パラメーター
-   - **hoursAgo**: 何時間前までの更新ファイルを対象とするか（省略時は全ファイル）
+   - **intervalHours**: 何時間前までの更新ファイルを対象とするか（省略時は全ファイル）
    - **filePrefixes**: ファイル名のプレフィックス（文字列の配列で指定）
    - **KnowledgeBaseId**: Amazon BedrockナレッジベースのID（**必須**）
    - **DataSourceId**: ナレッジベースのデータソースID（**必須**）
@@ -122,7 +122,7 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    
    ```json
    {
-     "hoursAgo": 24,
+     "intervalHours": 24,
      "filePrefixes": ["sample", "sample2"],
      "KnowledgeBaseId": "XXXXXXXX",
      "DataSourceId": "XXXXXXXX"
@@ -137,7 +137,7 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    
    ```json
    {
-     "hoursAgo": 24,
+     "intervalHours": 24,
      "filePrefixes": ["sample", "sample2"],
      "KnowledgeBaseId": "XXXXXXXX",
      "DataSourceId": "XXXXXXXX"

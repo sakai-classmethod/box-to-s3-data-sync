@@ -13,7 +13,7 @@ const ssmClient = new SSMClient();
 /** イベント入力パラメータの型定義 */
 type EventInput = {
 	/** 何時間前までの更新データを同期対象とするか（指定なしの場合は全量同期） */
-	hoursAgo?: number | null;
+	intervalHours?: number | null;
 	/** ファイル名のプレフィックス（文字列の配列） */
 	filePrefixes?: string[];
 };
@@ -152,7 +152,7 @@ const getFilteredBoxFiles = async (
 	);
 
 	// 時間指定がない場合はファイルサイズのみでフィルタリング
-	if (params.hoursAgo === undefined || params.hoursAgo === null) {
+	if (params.intervalHours === undefined || params.intervalHours === null) {
 		const fileDetailsPromises = filteredByName.map(
 			async (file: BoxItemBase) => {
 				try {
@@ -198,7 +198,7 @@ const getFilteredBoxFiles = async (
 
 			// 更新時間の基準を計算
 			const cutoffTime = new Date();
-			cutoffTime.setUTCHours(cutoffTime.getUTCHours() - params.hoursAgo!);
+			cutoffTime.setUTCHours(cutoffTime.getUTCHours() - params.intervalHours!);
 
 			// 更新時間でフィルタリング
 			if (fileDetail.modifiedAt && fileDetail.modifiedAt.value) {
@@ -407,25 +407,25 @@ export const handler: Handler = async (event: any, context: Context) => {
 
 		// イベント入力パラメータを取得してバリデーション
 		const params: EventInput = {
-			hoursAgo:
-				event.hoursAgo === null
+			intervalHours:
+				event.intervalHours === null
 					? null
-					: event.hoursAgo !== undefined
-						? Number.isNaN(Number(event.hoursAgo))
+					: event.intervalHours !== undefined
+						? Number.isNaN(Number(event.intervalHours))
 							? undefined
-							: Number(event.hoursAgo)
+							: Number(event.intervalHours)
 						: undefined,
 			filePrefixes: event.filePrefixes,
 		};
 
-		// hoursAgoの値が正の数であることを確認
+		// intervalHoursの値が正の数であることを確認
 		if (
-			params.hoursAgo !== null &&
-			params.hoursAgo !== undefined &&
-			params.hoursAgo <= 0
+			params.intervalHours !== null &&
+			params.intervalHours !== undefined &&
+			params.intervalHours <= 0
 		) {
 			throw new Error(
-				"無効なパラメータ: hoursAgo は正の数である必要があります",
+				"無効なパラメータ: intervalHours は正の数である必要があります",
 			);
 		}
 

@@ -9,17 +9,17 @@ States:
       execution_name.$: $$.Execution.Name
       execution_start_time.$: $$.Execution.StartTime
       # デフォルトパラメータをここで設定
-      hoursAgo: null
+      intervalHours: null
       filePrefix: null
     Next: MergeExecutionParams
-  
+
   MergeExecutionParams:
     Type: Pass
     Parameters:
       params.$: States.JsonMerge($, $$.Execution.Input, false)
     OutputPath: $.params
     Next: Init
-  
+
   Init:
     Type: Pass
     Comment: Configure and validate initial parameters
@@ -29,10 +29,10 @@ States:
       execution_name.$: $.execution_name
       execution_start_time.$: $.execution_start_time
       # 入力からパラメータを渡すだけにする（ExecutionParamsで既にデフォルト値設定済み）
-      hoursAgo.$: $.hoursAgo
+      intervalHours.$: $.intervalHours
       filePrefix.$: $.filePrefix
     Next: BoxSync
-  
+
   # Stage 1: Box to S3 data synchronization
   BoxSync:
     Type: Parallel
@@ -40,7 +40,7 @@ States:
     ResultSelector:
       execution_name.$: $[0].execution_name
       execution_start_time.$: $[0].execution_start_time
-      hoursAgo.$: $[0].hoursAgo
+      intervalHours.$: $[0].intervalHours
       filePrefix.$: $[0].filePrefix
       KnowledgeBaseId.$: $[0].KnowledgeBaseId
       DataSourceId.$: $[0].DataSourceId
@@ -54,12 +54,12 @@ States:
             Parameters:
               execution_name.$: $.execution_name
               execution_start_time.$: $.execution_start_time
-              hoursAgo.$: $.hoursAgo
+              intervalHours.$: $.intervalHours
               filePrefix.$: $.filePrefix
               KnowledgeBaseId.$: $.KnowledgeBaseId
               DataSourceId.$: $.DataSourceId
             Next: Execute
-          
+
           Execute:
             Type: Task
             Comment: Invoke Lambda function for Box to S3 data sync
@@ -82,10 +82,10 @@ States:
                 Next: BoxSyncFailed
             Next: BoxSyncSuccess
             ResultPath: "$.boxData"
-          
+
           BoxSyncSuccess:
             Type: Succeed
-          
+
           BoxSyncFailed:
             Type: Fail
             Error: "BoxSyncFailed"
@@ -98,7 +98,7 @@ States:
     ResultSelector:
       execution_name.$: $[0].execution_name
       execution_start_time.$: $[0].execution_start_time
-      hoursAgo.$: $[0].hoursAgo
+      intervalHours.$: $[0].intervalHours
       filePrefix.$: $[0].filePrefix
       KnowledgeBaseId.$: $[0].KnowledgeBaseId
       DataSourceId.$: $[0].DataSourceId
@@ -113,13 +113,13 @@ States:
             Parameters:
               execution_name.$: $.execution_name
               execution_start_time.$: $.execution_start_time
-              hoursAgo.$: $.hoursAgo
+              intervalHours.$: $.intervalHours
               filePrefix.$: $.filePrefix
               KnowledgeBaseId.$: $.KnowledgeBaseId
               DataSourceId.$: $.DataSourceId
               boxData.$: $.boxData
             Next: StartIngestion
-          
+
           StartIngestion:
             Type: Task
             Comment: Start data ingestion job for Bedrock knowledge base
@@ -134,21 +134,21 @@ States:
                 Next: DataSourceSyncFailed
             ResultPath: "$.kbSyncJob"
             Next: DataSourceSyncSuccess
-          
+
           DataSourceSyncSuccess:
             Type: Pass
             Comment: Knowledge base sync job started successfully
             Parameters:
               execution_name.$: "$.execution_name"
               execution_start_time.$: "$.execution_start_time"
-              hoursAgo.$: "$.hoursAgo"
+              intervalHours.$: "$.intervalHours"
               filePrefix.$: "$.filePrefix"
               KnowledgeBaseId.$: "$.KnowledgeBaseId"
               DataSourceId.$: "$.DataSourceId"
               boxData.$: "$.boxData"
               kbSyncJobId.$: "$.kbSyncJob.IngestionJob.IngestionJobId"
             End: true
-          
+
           DataSourceSyncFailed:
             Type: Fail
             Error: "DataSourceSyncFailed"
@@ -168,4 +168,4 @@ States:
         name.$: "$.execution_name"
         start_time.$: "$.execution_start_time"
         end_time.$: "$$.State.EnteredTime"
-    End: true 
+    End: true

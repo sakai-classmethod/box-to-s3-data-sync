@@ -160,7 +160,7 @@ export class BoxToS3DataSyncStack extends cdk.Stack {
 		scheduledRule.addTarget(
 			new targets.SfnStateMachine(stateMachine, {
 				input: events.RuleTargetInput.fromObject({
-					hoursAgo: props.syncIntervalHours,
+					intervalHours: props.syncIntervalHours,
 					filePrefixes: props.syncFilePrefixes,
 					KnowledgeBaseId: props.knowledgeBaseId,
 					DataSourceId: props.dataSourceId,
