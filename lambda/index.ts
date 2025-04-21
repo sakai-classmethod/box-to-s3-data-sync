@@ -14,8 +14,8 @@ const ssmClient = new SSMClient();
 type EventInput = {
 	/** 何時間前までの更新データを同期対象とするか（指定なしの場合は全量同期） */
 	hoursAgo?: number | null;
-	/** ファイル名のプレフィックス（単純な文字列または配列） */
-	filePrefix?: string | string[];
+	/** ファイル名のプレフィックス（文字列の配列） */
+	filePrefixes?: string[];
 };
 
 /**
@@ -132,7 +132,7 @@ const getFilteredBoxFiles = async (
 	console.log(`フォルダ内のファイル数: ${fileEntries.length}件`);
 
 	// ファイル名プレフィックスによるフィルタリング
-	const prefixPattern = createPrefixPattern(params.filePrefix);
+	const prefixPattern = createPrefixPattern(params.filePrefixes);
 	if (prefixPattern) {
 		console.log(`ファイル名パターン: ${prefixPattern} でフィルタリングします`);
 	}
@@ -415,7 +415,7 @@ export const handler: Handler = async (event: any, context: Context) => {
 							? undefined
 							: Number(event.hoursAgo)
 						: undefined,
-			filePrefix: event.filePrefix,
+			filePrefixes: event.filePrefixes,
 		};
 
 		// hoursAgoの値が正の数であることを確認
