@@ -46,11 +46,11 @@ export interface BoxToS3DataSyncStackProps extends cdk.StackProps {
 	/**
 	 * Box同期時の対象時間（時間単位）
 	 */
-	syncHoursAgo?: number;
+	syncHoursAgo: number;
 	/**
-	 * 同期ファイルのプレフィックス
+	 * 同期ファイルのプレフィックス（配列）
 	 */
-	syncFilePrefix?: string;
+	syncFilePrefixes: string[];
 	/**
 	 * 最大ファイルサイズ (MB)
 	 */
@@ -160,8 +160,8 @@ export class BoxToS3DataSyncStack extends cdk.Stack {
 		scheduledRule.addTarget(
 			new targets.SfnStateMachine(stateMachine, {
 				input: events.RuleTargetInput.fromObject({
-					hoursAgo: props?.syncHoursAgo || 24,
-					filePrefix: props?.syncFilePrefix || "",
+					hoursAgo: props.syncHoursAgo,
+					filePrefixes: props.syncFilePrefixes,
 					KnowledgeBaseId: props.knowledgeBaseId,
 					DataSourceId: props.dataSourceId,
 				}),
