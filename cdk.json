@@ -19,13 +19,13 @@
   "context": {
     "": {
       "bucketName": "your-data-source-bucket-name",
-      "ssmParamName": "/box/jwt",
-      "s3Prefix": "docs",
+      "ssmParameterKey": "/box/jwt",
+      "destinationS3Prefix": "docs",
       "boxFolderId": "your-box-folder-id",
       "maxFileSizeMB": 50,
       "knowledgeBaseId": "your-knowledge-base-id",
       "dataSourceId": "your-data-source-id",
-      "syncHoursAgo": 24,
+      "syncIntervalHours": 24,
       "syncFilePrefixes": [
         "your-file-prefix",
         "your-file-prefix2"
@@ -37,13 +37,13 @@
     },
     "dev": {
       "bucketName": "your-data-source-bucket-name",
-      "ssmParamName": "/box/jwt",
-      "s3Prefix": "docs",
+      "ssmParameterKey": "/box/jwt",
+      "destinationS3Prefix": "docs",
       "boxFolderId": "your-box-folder-id",
       "maxFileSizeMB": 50,
       "knowledgeBaseId": "your-knowledge-base-id",
       "dataSourceId": "your-data-source-id",
-      "syncHoursAgo": 24,
+      "syncIntervalHours": 24,
       "syncFilePrefixes": [
         "your-file-prefix",
         "your-file-prefix2"
@@ -55,13 +55,13 @@
     },
     "prod": {
       "bucketName": "your-data-source-bucket-name",
-      "ssmParamName": "/box/jwt",
-      "s3Prefix": "docs",
+      "ssmParameterKey": "/box/jwt",
+      "destinationS3Prefix": "docs",
       "boxFolderId": "your-box-folder-id",
       "maxFileSizeMB": 50,
       "knowledgeBaseId": "your-knowledge-base-id",
       "dataSourceId": "your-data-source-id",
-      "syncHoursAgo": 24,
+      "syncIntervalHours": 24,
       "syncFilePrefixes": [
         "your-file-prefix",
         "your-file-prefix2"
