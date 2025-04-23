@@ -8,3 +8,6 @@ node_modules
 cdk.out
 tmp/
 dist
+
+# Cursor rules
+.cursor/rules/
