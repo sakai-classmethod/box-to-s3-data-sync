@@ -45,7 +45,6 @@ const validateEnvVars = (): void => {
 	const requiredEnvVars = [
 		"SSM_PARAM_NAME",
 		"S3_BUCKET_NAME",
-		"S3_PREFIX",
 		"BOX_FOLDER_ID",
 		"MAX_FILE_SIZE_MB",
 	];
@@ -334,7 +333,7 @@ const syncFilesToS3 = async (
 		return [];
 	}
 
-	const prefix = process.env.S3_PREFIX!;
+	const prefix = process.env.S3_PREFIX;
 	const bucketName = process.env.S3_BUCKET_NAME!;
 
 	// 並列処理数を制限
@@ -361,11 +360,14 @@ const syncFilesToS3 = async (
 
 			console.log(`ファイル "${file.name}" をS3にアップロードします`);
 
+			// S3_PREFIXが設定されている場合はプレフィックスを付ける、そうでなければファイル名のみ
+			const key = prefix ? `${prefix}/${file.name}` : file.name;
+
 			const upload = new Upload({
 				client: s3Client,
 				params: {
 					Bucket: bucketName,
-					Key: `${prefix}/${file.name}`,
+					Key: key,
 					Body: fileStream,
 					Metadata: {
 						"box-file-id": String(file.id),
