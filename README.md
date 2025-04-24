@@ -52,8 +52,8 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
      "context": {
        "": {
          "bucketName": "your-data-source-bucket-name",
-         "ssmParameterKey": "/box/jwt",
          "destinationS3Prefix": "docs",
+         "ssmParameterKey": "/box/jwt",
          "boxFolderId": "your-box-folder-id",
          "maxFileSizeMB": 50,
          "knowledgeBaseId": "your-knowledge-base-id",
