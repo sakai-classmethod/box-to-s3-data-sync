@@ -12,6 +12,9 @@
     "cdk:deploy": "npx cdk deploy -c environment=",
     "cdk:deploy:dev": "npx cdk deploy -c environment=dev",
     "cdk:deploy:prod": "npx cdk deploy -c environment=prod",
+    "cdk:destroy": "npx cdk destroy -c environment=",
+    "cdk:destroy:dev": "npx cdk destroy -c environment=dev",
+    "cdk:destroy:prod": "npx cdk destroy -c environment=prod",
     "biome:format": "npx @biomejs/biome format --write"
   },
   "devDependencies": {
