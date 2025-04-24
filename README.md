@@ -10,12 +10,29 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
 1. Box API接続用のLambda関数
 2. データ同期処理を実行するStep Functions
 3. 必要なIAMロールとポリシー
+4. 日次実行のEventBridgeスケジュール
 
 ## アーキテクチャ
 
 ![Box to S3 データ同期のアーキテクチャ図](./images/aws.png)
 
+### 主要コンポーネント
+
+- **AWS Lambda**: Box APIと連携してファイル取得・S3へのアップロードを実行
+- **AWS Step Functions**: 同期ワークフローを管理
+- **Amazon EventBridge**: 定期的なスケジュール実行を提供
+- **Amazon S3**: 同期したファイルの保存先
+- **AWS Systems Manager Parameter Store**: Box API認証情報の安全な保管
+
 ## セットアップと実行
+
+### 前提条件
+
+- AWS CLI、CDKがインストールされており、適切な権限を持つプロファイルが設定されていること
+- Node.jsインストールされていること
+- Box Developerアカウントと適切な権限を持つアプリケーションの作成
+
+### 手順
 
 1. リポジトリのクローンと依存関係のインストール
    ```bash
@@ -41,7 +58,7 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
      --value file://./box_config.json \
      --overwrite \
      --no-cli-pager \
-     --region ap-northeast-1
+     --region us-west-2
    ```
 
 4. `cdk.json`の設定
@@ -62,7 +79,7 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
          "syncFilePrefixes": ["sample", "sample2"],
          "env": {
            "account": "123456789012",
-           "region": "ap-northeast-1"
+           "region": "us-west-2"
          }
        },
        "dev": {
@@ -77,7 +94,7 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
          "syncFilePrefixes": ["sample", "sample2"],
          "env": {
            "account": "123456789012",
-           "region": "ap-northeast-1"
+           "region": "us-west-2"
          }
        }
      }
@@ -107,46 +124,98 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    npm run cdk:deploy:dev
    ```
 
-6. 実行方法
-
-   ### 実行パラメーター
-   - **intervalHours**: 何時間前までの更新ファイルを対象とするか（省略時は全ファイル）
-   - **filePrefixes**: ファイル名のプレフィックス（文字列の配列で指定）
-   - **KnowledgeBaseId**: Amazon BedrockナレッジベースのID（**必須**）
-   - **DataSourceId**: ナレッジベースのデータソースID（**必須**）
-
-   ### AWS マネジメントコンソールから手動実行
-   - AWS Step Functionsコンソールにアクセス
-   - `BoxToS3SyncStateMachine` を選択
-   - 「実行」をクリックし、パラメーターを入力して実行
+   環境を明示的に指定する場合は以下のようにします：
    
-   ```json
-   {
-     "intervalHours": 24,
-     "filePrefixes": ["sample", "sample2"],
-     "KnowledgeBaseId": "XXXXXXXX",
-     "DataSourceId": "XXXXXXXX"
-   }
+   ```bash
+   npx cdk deploy -c environment=dev
    ```
-   
-   ### EventBridgeによる自動実行
-   CDKデプロイ時に、毎日日本時間AM1:00に実行されるEventBridgeルールが自動的に作成されます。
 
-   - 実行時間: 毎日日本時間AM1:00（UTC 15:00）
-   - 入力パラメーター:
-   
-   ```json
-   {
-     "intervalHours": 24,
-     "filePrefixes": ["sample", "sample2"],
-     "KnowledgeBaseId": "XXXXXXXX",
-     "DataSourceId": "XXXXXXXX"
-   }
-   ```
-   
-   EventBridgeルールのスケジュールや入力パラメーターを変更する場合は、CDKコードを修正するかマネジメントコーソールから直接変更してください。
+## 実行方法
 
-## Step Functionsのワークフロー
+### 実行パラメーター
+
+- **intervalHours**: 何時間前までの更新ファイルを対象とするか（省略時は全ファイル）
+- **filePrefixes**: ファイル名のプレフィックス（文字列の配列で指定）
+- **KnowledgeBaseId**: Amazon BedrockナレッジベースのID（**必須**）
+- **DataSourceId**: ナレッジベースのデータソースID（**必須**）
+
+### AWS マネジメントコンソールから手動実行
+
+- AWS Step Functionsコンソールにアクセス
+- `BoxToS3SyncStateMachine` を選択
+- 「実行」をクリックし、パラメーターを入力して実行
+   
+```json
+{
+  "intervalHours": 24,
+  "filePrefixes": ["sample", "sample2"],
+  "KnowledgeBaseId": "XXXXXXXX",
+  "DataSourceId": "XXXXXXXX"
+}
+```
+   
+### EventBridgeによる自動実行
+
+CDKデプロイ時に、毎日日本時間AM1:00に実行されるEventBridgeルールが自動的に作成されます。
+
+- 実行時間: 毎日日本時間AM1:00（UTC 15:00）
+- 入力パラメーター:
+   
+```json
+{
+  "intervalHours": 24,
+  "filePrefixes": ["sample", "sample2"],
+  "KnowledgeBaseId": "XXXXXXXX",
+  "DataSourceId": "XXXXXXXX"
+}
+```
+   
+EventBridgeルールのスケジュールや入力パラメーターを変更する場合は、CDKコードを修正するかマネジメントコンソールから直接変更してください。
+
+## ワークフロー詳細
+
+### Step Functionsのステップ
 
 1. **ExecuteBoxSync**: Box to S3同期処理（Lambda関数を呼び出し）
+   - Box認証
+   - 対象ファイルの抽出（条件に基づくフィルタリング）
+   - ファイルダウンロードとS3へのアップロード
+   
 2. **StartIngestion**: Bedrockナレッジベースのデータソース同期開始
+   - S3バケットに保存されたデータに基づいてBedrockナレッジベースの同期ジョブを開始
+
+### Box APIインテグレーション
+
+このプロジェクトでは、Box TypeScript SDK (`box-typescript-sdk-gen`)を使用してBoxとの連携を行っています。
+
+主な操作：
+- JWT認証を使用したセキュアなアクセス
+- フォルダー内のファイル一覧取得
+- 条件によるファイルのフィルタリング
+- ファイルのダウンロード
+
+### ファイルフィルタリング条件
+
+Boxフォルダーから以下の条件でファイルをフィルタリングします：
+
+1. **ファイル名プレフィックス**（指定があれば）
+2. **ファイルサイズ上限**（デフォルト50MB）
+3. **更新日時**（指定された時間内に更新されたファイル）
+
+## プロジェクト構造
+
+```
+.
+├── bin/                  # CDKアプリケーションのエントリーポイント
+├── images/               # ドキュメント用画像
+├── lambda/               # Lambda関数のソースコード
+├── layers/               # Lambda Layers関連ファイル
+├── lib/                  # CDKスタック定義
+└── step-functions/       # Step Functions定義ファイル
+```
+
+## トラブルシューティング
+
+- **認証エラー**: Box JWT設定が正しいか、SSM Parameter Storeに正しくアップロードされているか確認してください
+- **ファイルが同期されない**: フィルタリング条件（ファイルサイズ、プレフィックス、更新時間）を確認してください
+- **権限エラー**: Boxアプリケーションが対象フォルダーに対する適切な権限を持っているか確認してください
