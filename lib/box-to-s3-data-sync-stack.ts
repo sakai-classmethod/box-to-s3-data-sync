@@ -218,7 +218,7 @@ export class BoxToS3DataSyncStack extends cdk.Stack {
 		// 依存関係をインストール
 		try {
 			console.log("Installing Lambda Layer dependencies...");
-			execSync("npm ci --omit=dev", {
+			execSync("npm install --omit=dev", {
 				cwd: nodejsDir,
 				stdio: "inherit",
 				env: { ...process.env, NODE_ENV: "production" },
