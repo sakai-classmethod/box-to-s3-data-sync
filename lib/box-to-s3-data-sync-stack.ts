@@ -44,10 +44,6 @@ export interface BoxToS3DataSyncStackProps extends cdk.StackProps {
 	 */
 	dataSourceId: string;
 	/**
-	 * Box同期時の対象時間（時間単位）
-	 */
-	syncIntervalHours: number;
-	/**
 	 * 同期ファイルのプレフィックス（配列）
 	 */
 	syncFilePrefixes: string[];
@@ -160,7 +156,7 @@ export class BoxToS3DataSyncStack extends cdk.Stack {
 		scheduledRule.addTarget(
 			new targets.SfnStateMachine(stateMachine, {
 				input: events.RuleTargetInput.fromObject({
-					intervalHours: props.syncIntervalHours,
+					intervalHours: 24, // 固定値として24時間を設定
 					filePrefixes: props.syncFilePrefixes,
 					KnowledgeBaseId: props.knowledgeBaseId,
 					DataSourceId: props.dataSourceId,

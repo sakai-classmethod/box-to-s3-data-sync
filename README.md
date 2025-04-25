@@ -75,7 +75,6 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
          "maxFileSizeMB": 50,
          "knowledgeBaseId": "your-knowledge-base-id",
          "dataSourceId": "your-data-source-id",
-         "syncIntervalHours": 24,
          "syncFilePrefixes": ["sample", "sample2"],
          "env": {
            "account": "123456789012",
@@ -90,7 +89,6 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
          "maxFileSizeMB": 50,
          "knowledgeBaseId": "your-knowledge-base-id",
          "dataSourceId": "your-data-source-id",
-         "syncIntervalHours": 24,
          "syncFilePrefixes": ["sample", "sample2"],
          "env": {
            "account": "123456789012",
@@ -109,7 +107,6 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
    - `maxFileSizeMB`: ダウンロード可能な最大ファイルサイズ（MB単位）。初期値50MBは[Amazon Bedrockナレッジベースの前提条件](https://docs.aws.amazon.com/ja_jp/bedrock/latest/userguide/knowledge-base-ds.html)に合わせています
    - `knowledgeBaseId`: Amazon Bedrockナレッジベースの識別子
    - `dataSourceId`: ナレッジベース内のデータソース識別子
-   - `syncIntervalHours`: Box同期時の対象時間（時間単位）、デフォルトは24時間
    - `syncFilePrefixes`: 同期対象のファイル名プレフィックス（配列で複数指定可能）
    - `env`: AWSアカウントとリージョンの設定
 
@@ -134,7 +131,9 @@ Amazon Bedrockナレッジベースへのデータ連携も可能です。
 
 ### 実行パラメーター
 
-- **intervalHours**: 何時間前までの更新ファイルを対象とするか（省略時は全ファイル）
+- **intervalHours**: 
+  - 自動実行時: 24時間（EventBridge実行時は固定値）
+  - 手動実行時: 何時間前までの更新ファイルを対象とするか指定（省略時は全ファイル）
 - **filePrefixes**: ファイル名のプレフィックス（文字列の配列で指定）
 - **KnowledgeBaseId**: Amazon BedrockナレッジベースのID（**必須**）
 - **DataSourceId**: ナレッジベースのデータソースID（**必須**）

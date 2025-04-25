@@ -24,6 +24,5 @@ new BoxToS3DataSyncStack(app, `BoxToS3DataSyncStack${envKey}`, {
 	maxFileSizeMB: envVals.maxFileSizeMB,
 	knowledgeBaseId: envVals.knowledgeBaseId,
 	dataSourceId: envVals.dataSourceId,
-	syncIntervalHours: envVals.syncIntervalHours,
 	syncFilePrefixes: envVals.syncFilePrefixes,
 });
