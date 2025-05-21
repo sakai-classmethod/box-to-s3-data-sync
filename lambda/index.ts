@@ -16,6 +16,10 @@ type EventInput = {
 	intervalHours?: number | null;
 	/** ファイル名のプレフィックス（文字列の配列） */
 	filePrefixes?: string[];
+	/** ページネーション用オフセット */
+	offset?: number;
+	/** 1回の取得件数の上限 */
+	limit?: number;
 };
 
 /**
@@ -35,6 +39,13 @@ type BoxFileWithPath = {
 	id: string;
 	name: string;
 	path: string;
+};
+
+/** フィルタリング結果の型定義 */
+type FilteredFilesResult = {
+	files: Array<{ id: string; name: string }>;
+	hasMore: boolean;
+	nextOffset: number;
 };
 
 /**
@@ -113,15 +124,30 @@ const createPrefixPattern = (
  */
 const getFilteredBoxFiles = async (
 	params: EventInput,
-): Promise<{ id: string; name: string }[]> => {
+): Promise<FilteredFilesResult> => {
 	const client = await createBoxClient();
-	const folderId = process.env.BOX_FOLDER_ID;
+	const folderId = process.env.BOX_FOLDER_ID!;
+	
+	// ページネーションのためのパラメータ設定
+	const offset = params.offset || 0;
+	const limit = params.limit || 50;
+	
+	console.log(`フォルダ ${folderId} からファイルを取得します (offset=${offset}, limit=${limit})`);
 
-	const folderItems = await client.folders.getFolderItems(folderId);
+	const folderItems = await client.folders.getFolderItems(folderId, {
+		queryParams: {
+			limit,
+			offset
+		}
+	});
 
 	if (!folderItems.entries || folderItems.entries.length === 0) {
 		console.log("対象フォルダにファイルがありません");
-		return [];
+		return { 
+			files: [],
+			hasMore: false,
+			nextOffset: offset
+		};
 	}
 
 	// フォルダからファイルのみを抽出
@@ -129,6 +155,11 @@ const getFilteredBoxFiles = async (
 		(item: BoxItemBase) => item.type === "file",
 	);
 	console.log(`フォルダ内のファイル数: ${fileEntries.length}件`);
+
+	// ページネーション情報の計算
+	const hasMore = fileEntries.length >= limit;
+	const nextOffset = offset + fileEntries.length;
+	console.log(`次回取得用オフセット: ${nextOffset}、まだデータがあるか: ${hasMore}`);
 
 	// ファイル名プレフィックスによるフィルタリング
 	const prefixPattern = createPrefixPattern(params.filePrefixes);
@@ -166,7 +197,7 @@ const getFilteredBoxFiles = async (
 
 					return {
 						id: fileDetail.id,
-						name: fileDetail.name,
+						name: fileDetail.name || "",
 					};
 				} catch (error) {
 					console.error(
@@ -179,15 +210,18 @@ const getFilteredBoxFiles = async (
 		);
 
 		const filteredFiles = (await Promise.all(fileDetailsPromises)).filter(
-			(
-				file: { id: string; name: string } | null,
-			): file is { id: string; name: string } => file !== null,
+			(file): file is { id: string; name: string } => 
+				file !== null && typeof file.name === 'string'
 		);
 
 		console.log(
 			`フィルタリング結果: ${filteredFiles.length}件のファイルが対象です`,
 		);
-		return filteredFiles;
+		return {
+			files: filteredFiles,
+			hasMore,
+			nextOffset
+		};
 	}
 
 	// 時間指定がある場合、時間とサイズの両方でフィルタリング
@@ -217,7 +251,7 @@ const getFilteredBoxFiles = async (
 
 			return {
 				id: fileDetail.id,
-				name: fileDetail.name,
+				name: fileDetail.name || "",
 			};
 		} catch (error) {
 			console.error(
@@ -229,15 +263,18 @@ const getFilteredBoxFiles = async (
 	});
 
 	const filteredFiles = (await Promise.all(fileDetailsPromises)).filter(
-		(
-			file: { id: string; name: string } | null,
-		): file is { id: string; name: string } => file !== null,
+		(file): file is { id: string; name: string } => 
+			file !== null && typeof file.name === 'string'
 	);
 
 	console.log(
 		`フィルタリング結果: ${filteredFiles.length}件のファイルが対象です`,
 	);
-	return filteredFiles;
+	return {
+		files: filteredFiles,
+		hasMore,
+		nextOffset
+	};
 };
 
 /**
@@ -245,11 +282,11 @@ const getFilteredBoxFiles = async (
  */
 const downloadFiles = async (
 	params: EventInput,
-	context?: Context,
 ): Promise<BoxFileWithPath[]> => {
-	const filteredFiles = await getFilteredBoxFiles(params);
+	const result = await getFilteredBoxFiles(params);
+	const filteredFiles = result.files || [];
 
-	if (!filteredFiles || filteredFiles.length === 0) {
+	if (filteredFiles.length === 0) {
 		console.log("ダウンロード対象のファイルがありません");
 		return [];
 	}
@@ -261,18 +298,6 @@ const downloadFiles = async (
 	const results: BoxFileWithPath[] = [];
 
 	for (let i = 0; i < filteredFiles.length; i += batchSize) {
-		// Lambda実行時間の制約を考慮
-		if (
-			context &&
-			context.getRemainingTimeInMillis &&
-			context.getRemainingTimeInMillis() < 30000
-		) {
-			console.log(
-				`残り時間が少ないため処理を中断します。${filteredFiles.length - i}件未処理`,
-			);
-			break;
-		}
-
 		const batch = filteredFiles.slice(i, i + batchSize);
 		const batchPromises = batch.map(
 			async (file: { id: string; name: string }) => {
@@ -296,10 +321,16 @@ const downloadFiles = async (
 						});
 					});
 
-					fileContent.pipe(fileWriteStream);
-					fileContent.on("end", () => {
+					if (fileContent) {
+						fileContent.pipe(fileWriteStream);
+						fileContent.on("end", () => {
+							fileWriteStream.end();
+						});
+					} else {
 						fileWriteStream.end();
-					});
+						console.error(`ファイル "${file.name}" のダウンロードに失敗しました: ストリームがありません`);
+						reject(new Error("ファイルダウンロードストリームがありません"));
+					}
 				});
 			},
 		);
@@ -312,25 +343,23 @@ const downloadFiles = async (
 };
 
 /**
- * S3クライアントを作成
- */
-const createS3Client = (): S3Client => {
-	// グローバルに初期化されたクライアントを返す
-	return s3Client;
-};
-
-/**
  * ダウンロードしたファイルをS3にアップロード
  */
 const syncFilesToS3 = async (
 	params: EventInput,
-	context?: Context,
-): Promise<any[]> => {
-	const files = await downloadFiles(params, context);
+): Promise<{ uploadResults: any[]; hasMore: boolean; nextOffset: number }> => {
+	const result = await getFilteredBoxFiles(params);
+	const files = await downloadFiles(params);
+	
+	const { hasMore, nextOffset } = result;
 
-	if (!files || files.length === 0) {
+	if (files.length === 0) {
 		console.log("アップロード対象のファイルがありません");
-		return [];
+		return { 
+			uploadResults: [],
+			hasMore,
+			nextOffset 
+		};
 	}
 
 	const prefix = process.env.S3_PREFIX;
@@ -338,26 +367,12 @@ const syncFilesToS3 = async (
 
 	// 並列処理数を制限
 	const batchSize = 10;
-	const results = [];
+	const uploadResults = [];
 
 	for (let i = 0; i < files.length; i += batchSize) {
-		// Lambda実行時間の制約を考慮
-		if (
-			context &&
-			context.getRemainingTimeInMillis &&
-			context.getRemainingTimeInMillis() < 30000
-		) {
-			console.log(
-				`残り時間が少ないため処理を中断します。${files.length - i}件未処理`,
-			);
-			break;
-		}
-
 		const batch = files.slice(i, i + batchSize);
 		const batchPromises = batch.map(async (file: BoxFileWithPath) => {
-			// グローバルなS3クライアントを直接使用
 			const fileStream = fs.createReadStream(file.path);
-
 			console.log(`ファイル "${file.name}" をS3にアップロードします`);
 
 			// S3_PREFIXが設定されている場合はプレフィックスを付ける、そうでなければファイル名のみ
@@ -394,10 +409,10 @@ const syncFilesToS3 = async (
 		});
 
 		const batchResults = await Promise.all(batchPromises);
-		results.push(...batchResults);
+		uploadResults.push(...batchResults);
 	}
 
-	return results;
+	return { uploadResults, hasMore, nextOffset };
 };
 
 /**
@@ -418,6 +433,8 @@ export const handler: Handler = async (event: any, context: Context) => {
 							: Number(event.intervalHours)
 						: undefined,
 			filePrefixes: event.filePrefixes,
+			offset: typeof event.offset === 'number' ? event.offset : 0,
+			limit: typeof event.limit === 'number' ? event.limit : 50
 		};
 
 		// intervalHoursの値が正の数であることを確認
@@ -433,18 +450,23 @@ export const handler: Handler = async (event: any, context: Context) => {
 
 		console.log("EventInput:", params);
 
-		const result = await syncFilesToS3(params, context);
+		const { uploadResults, hasMore, nextOffset } = await syncFilesToS3(params);
+		
 		console.log(
-			"処理が完了しました:",
-			result.length,
-			"件のファイルを処理しました",
+			`処理が完了しました: ${uploadResults.length}件のファイルを処理しました (hasMore=${hasMore}, nextOffset=${nextOffset})`
 		);
+		
 		return {
 			statusCode: 200,
 			body: JSON.stringify({
-				message: "処理が正常に完了しました",
-				processedFiles: result.length,
+				message: hasMore ? "処理が継続中です" : "処理が正常に完了しました",
+				status: hasMore ? "IN_PROGRESS" : "COMPLETE",
+				processedFiles: uploadResults.length,
 				params: params,
+				nextInvocationParams: hasMore ? {
+					...params,
+					offset: nextOffset
+				} : null
 			}),
 		};
 	} catch (error) {

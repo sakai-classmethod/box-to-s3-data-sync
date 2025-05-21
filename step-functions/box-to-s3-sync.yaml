@@ -1,0 +1,36 @@
+Comment: Box to S3 data sync
+StartAt: SyncBox
+States:
+  SyncBox:
+    Type: Task
+    Resource: arn:aws:states:::lambda:invoke
+    Parameters:
+      FunctionName: "${BoxToS3FunctionArn}"
+      Payload.$: $
+    ResultPath: "$.lambdaResult"
+    ResultSelector:
+      "Payload.$": "$.Payload"
+      "ParsedBody.$": "States.StringToJson($.Payload.body)"
+    Next: CheckNextPage
+  CheckNextPage:
+    Type: Choice
+    Choices:
+      - Variable: "$.lambdaResult.ParsedBody.status"
+        StringEquals: "IN_PROGRESS"
+        Next: NextSyncBox
+    Default: SyncDataSource
+  NextSyncBox:
+    Type: Pass
+    Parameters:
+      offset.$: "$.lambdaResult.ParsedBody.nextInvocationParams.offset"
+      limit.$: "$.lambdaResult.ParsedBody.nextInvocationParams.limit"
+      KnowledgeBaseId.$: "$.KnowledgeBaseId"
+      DataSourceId.$: "$.DataSourceId"
+    Next: SyncBox
+  SyncDataSource:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:bedrockagent:startIngestionJob
+    Parameters:
+      KnowledgeBaseId.$: "$.KnowledgeBaseId"
+      DataSourceId.$: "$.DataSourceId"
+    End: true
