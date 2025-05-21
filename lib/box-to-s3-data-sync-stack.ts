@@ -77,8 +77,8 @@ export class BoxToS3DataSyncStack extends cdk.Stack {
 			handler: "handler",
 			entry: path.join(__dirname, "../lambda/index.ts"),
 			layers: [dependenciesLayer],
-			memorySize: 512,
-			timeout: cdk.Duration.seconds(60),
+			memorySize: 1024,
+			timeout: cdk.Duration.seconds(300),
 			bundling: {
 				externalModules: [
 					// AWS SDKはレイヤーから提供されるためバンドルから除外
@@ -124,7 +124,7 @@ export class BoxToS3DataSyncStack extends cdk.Stack {
 		// Step Functions のステートマシン定義
 		const stateMachine = new sfn.StateMachine(this, "BoxToS3SyncStateMachine", {
 			definitionBody: sfn.DefinitionBody.fromFile(
-				path.join(__dirname, "../step-functions/box-to-s3-sync-lite.yaml"),
+				path.join(__dirname, "../step-functions/box-to-s3-sync.yaml"),
 			),
 			definitionSubstitutions: {
 				BoxToS3FunctionArn: boxToS3Function.functionArn,
