@@ -22,6 +22,8 @@ States:
   NextSyncBox:
     Type: Pass
     Parameters:
+      intervalHours.$: "$.lambdaResult.ParsedBody.nextInvocationParams.intervalHours"
+      filePrefixes.$: "$.lambdaResult.ParsedBody.nextInvocationParams.filePrefixes"
       offset.$: "$.lambdaResult.ParsedBody.nextInvocationParams.offset"
       limit.$: "$.lambdaResult.ParsedBody.nextInvocationParams.limit"
       KnowledgeBaseId.$: "$.KnowledgeBaseId"

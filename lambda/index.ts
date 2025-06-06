@@ -152,6 +152,10 @@ const createPrefixPattern = (
 		s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 	if (Array.isArray(prefix)) {
+		// 空配列の場合はnullを返す（フィルタリング無効）
+		if (prefix.length === 0) {
+			return null;
+		}
 		const pattern = `^(${prefix.map(escapeRegExp).join("|")})`;
 		return new RegExp(pattern);
 	}
@@ -197,7 +201,8 @@ const getFilteredBoxFiles = async (
 	console.log(`フォルダ内のファイル数: ${fileEntries.length}件`);
 
 	// ページネーション情報の計算
-	const hasMore = fileEntries.length >= limit;
+	// Box APIから取得したファイル数が要求したlimit数と同じ場合のみ、まだファイルがある可能性がある
+	const hasMore = fileEntries.length === limit;
 	const nextOffset = offset + fileEntries.length;
 	console.log(`次回取得用オフセット: ${nextOffset}、まだデータがあるか: ${hasMore}`);
 
@@ -473,7 +478,7 @@ export const handler: Handler = async (event: any, context: Context) => {
 							? undefined
 							: Number(event.intervalHours)
 						: undefined,
-			filePrefixes: event.filePrefixes,
+			filePrefixes: Array.isArray(event.filePrefixes) ? event.filePrefixes : undefined,
 			offset: typeof event.offset === 'number' ? event.offset : 0,
 			limit: typeof event.limit === 'number' ? event.limit : 50
 		};
@@ -497,6 +502,13 @@ export const handler: Handler = async (event: any, context: Context) => {
 			`処理が完了しました: ${uploadResults.length}件のファイルを処理しました (hasMore=${hasMore}, nextOffset=${nextOffset})`
 		);
 		
+		const nextParams = hasMore ? {
+			intervalHours: params.intervalHours ?? null,
+			filePrefixes: params.filePrefixes ?? undefined,
+			offset: nextOffset,
+			limit: params.limit
+		} : null;
+		
 		return {
 			statusCode: 200,
 			body: JSON.stringify({
@@ -504,10 +516,7 @@ export const handler: Handler = async (event: any, context: Context) => {
 				status: hasMore ? "IN_PROGRESS" : "COMPLETE",
 				processedFiles: uploadResults.length,
 				params: params,
-				nextInvocationParams: hasMore ? {
-					...params,
-					offset: nextOffset
-				} : null
+				nextInvocationParams: nextParams
 			}),
 		};
 	} catch (error) {
