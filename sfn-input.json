@@ -1,0 +1,9 @@
+{
+    "intervalHours": 24,
+    "filePrefixes": [
+        "sample",
+        "sample2"
+    ],
+    "KnowledgeBaseId": "XXXXXXXX",
+    "DataSourceId": "XXXXXXXX"
+}

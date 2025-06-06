@@ -99,6 +99,46 @@ const createBoxClient = async (): Promise<BoxClient> => {
 };
 
 /**
+ * ファイル名の拡張子からContent-Typeを判定する関数
+ * @param fileName - ファイル名
+ * @returns 適切なContent-Type文字列
+ */
+const getContentType = (fileName: string): string => {
+	// ファイル名から拡張子を取得（大文字小文字を区別しない）
+	const extension = fileName.toLowerCase().split('.').pop() || '';
+	
+	// 拡張子とContent-Typeのマッピング
+	const contentTypeMap: Record<string, string> = {
+		// PDFファイル
+		'pdf': 'application/pdf',
+		
+		// Microsoft Word
+		'doc': 'application/msword',
+		'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		
+		// Microsoft Excel
+		'xls': 'application/vnd.ms-excel',
+		'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		
+		// Microsoft PowerPoint
+		'ppt': 'application/vnd.ms-powerpoint',
+		'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		
+		// テキストファイル
+		'txt': 'text/plain',
+		
+		// 画像ファイル
+		'jpg': 'image/jpeg',
+		'jpeg': 'image/jpeg',
+		'png': 'image/png',
+		'gif': 'image/gif',
+	};
+	
+	// マッピングから該当するContent-Typeを取得、見つからない場合はデフォルト値
+	return contentTypeMap[extension] || 'application/octet-stream';
+};
+
+/**
  * プレフィックスから正規表現パターンを作成
  */
 const createPrefixPattern = (
@@ -384,6 +424,7 @@ const syncFilesToS3 = async (
 					Bucket: bucketName,
 					Key: key,
 					Body: fileStream,
+					ContentType: getContentType(file.name),
 					Metadata: {
 						"box-file-id": String(file.id),
 					},
