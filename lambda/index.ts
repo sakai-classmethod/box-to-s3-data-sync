@@ -478,7 +478,7 @@ export const handler: Handler = async (event: any, context: Context) => {
 							? undefined
 							: Number(event.intervalHours)
 						: undefined,
-			filePrefixes: Array.isArray(event.filePrefixes) ? event.filePrefixes : undefined,
+			filePrefixes: Array.isArray(event.filePrefixes) ? event.filePrefixes : [],
 			offset: typeof event.offset === 'number' ? event.offset : 0,
 			limit: typeof event.limit === 'number' ? event.limit : 50
 		};
@@ -504,7 +504,7 @@ export const handler: Handler = async (event: any, context: Context) => {
 		
 		const nextParams = hasMore ? {
 			intervalHours: params.intervalHours ?? null,
-			filePrefixes: params.filePrefixes ?? undefined,
+			filePrefixes: params.filePrefixes,
 			offset: nextOffset,
 			limit: params.limit
 		} : null;
